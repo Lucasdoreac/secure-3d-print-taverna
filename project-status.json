@@ -1,12 +1,12 @@
 {
   "projectInfo": {
     "name": "Secure 3D Print Taverna",
-    "version": "0.1.0",
-    "lastUpdated": "2025-04-10T17:36:30Z"
+    "version": "0.2.0",
+    "lastUpdated": "2025-04-10T18:03:30Z"
   },
   "development": {
-    "currentFocus": "Implementação de controladores específicos e funcionalidades de negócio",
-    "currentSprint": "Desenvolvimento de Módulos Funcionais"
+    "currentFocus": "Implementação de funcionalidades resilientes com isolamento de falhas",
+    "currentSprint": "Desenvolvimento de Subsistemas Resilientes"
   },
   "components": {
     "completed": [
@@ -25,49 +25,42 @@
       "UserModel",
       "ConfigConstants",
       "PHPStanConfiguration",
-      "CIWorkflow"
+      "CIWorkflow",
+      "CircuitBreaker",
+      "ModelValidator",
+      "SecureFileUploader",
+      "TestMonitoringScript",
+      "CIWithRecovery"
     ],
     "inProgress": [
       "OrderManagement",
-      "3DModelValidation",
-      "FrontendControllers"
+      "PrinterIntegration"
     ],
     "pending": [
       "ReportController",
       "PaymentIntegration",
       "NotificationSystem",
-      "PrinterIntegration",
       "AdminInterface"
     ]
   },
   "roadmap": {
     "immediate": [
-      "Implementar controladores de gestão de modelos 3D",
-      "Desenvolver validação de formatos de modelos 3D (STL, OBJ, etc.)",
-      "Criar interface de pedidos com estimativa de custos",
-      "Implementar comunicação segura com serviços de impressão"
+      "Implementar módulo de gerenciamento de pedidos com circuit breaker",
+      "Desenvolver integração resiliente com serviços de impressão",
+      "Expandir validações de modelos 3D para novos formatos",
+      "Aprimorar telemetria e detecção precoce de anomalias"
     ]
   },
   "context": {
     "lastEditedFiles": [
-      "app/lib/Security/InputValidationTrait.php",
-      "app/lib/Security/InputValidator.php",
-      "app/lib/Security/CsrfProtection.php",
-      "app/lib/Security/SecurityManager.php",
-      "app/lib/Security/SecurityHeaders.php",
-      "app/lib/Database/DatabaseConnection.php",
-      "app/lib/Database/DatabaseException.php",
-      "app/lib/Logging/Logger.php",
-      "app/controllers/BaseController.php",
-      "app/models/User.php",
-      "config/constants.php",
-      "config/database.php",
-      "tests/Security/CsrfProtectionTest.php",
-      "tests/Security/InputValidatorTest.php",
-      "tests/bootstrap.php",
-      ".github/workflows/security-scan.yml",
-      "phpstan.neon",
-      "composer.json"
+      "app/lib/Resilience/CircuitBreaker.php",
+      "app/lib/Models/ModelValidator.php",
+      "app/lib/Upload/SecureFileUploader.php",
+      "scripts/run-tests-with-monitoring.sh",
+      ".github/workflows/ci-with-recovery.yml",
+      "tests/Unit/Models/ModelValidatorTest.php",
+      "tests/Unit/Upload/SecureFileUploaderTest.php",
+      "README.md"
     ],
     "incompleteOperations": false,
     "pendingChanges": null
@@ -93,11 +86,31 @@
         "status": "resolvido", 
         "resolution": "Workflow atualizado para criar diretórios e arquivos necessários"
       }
+    ],
+    "reliability": [
+      {
+        "id": "REL-001",
+        "title": "Falhas intermitentes na validação de modelos 3D",
+        "status": "resolvido",
+        "resolution": "Implementação de CircuitBreaker e mecanismo de retry"
+      },
+      {
+        "id": "REL-002",
+        "title": "Uploads abortados sem diagnóstico",
+        "status": "resolvido",
+        "resolution": "Sistema de monitoramento e recuperação de uploads"
+      },
+      {
+        "id": "REL-003",
+        "title": "Falta de isolamento entre uploads de diferentes usuários",
+        "status": "resolvido",
+        "resolution": "Implementação de sandboxing por usuário com sharding de diretórios"
+      }
     ]
   },
   "securityMetrics": {
-    "componentsImplemented": 16,
-    "criticalGuardrailsActive": 8,
+    "componentsImplemented": 21,
+    "criticalGuardrailsActive": 12,
     "securityHeadersConfigured": true,
     "csrfProtectionEnabled": true,
     "inputValidationEnabled": true,
@@ -107,10 +120,52 @@
     "passwordSecurityEnabled": true,
     "errorHandlingSecure": true,
     "sensitiveDataProtection": true,
+    "deepModelValidationEnabled": true,
+    "circuitBreakerEnabled": true,
+    "userSandboxingEnabled": true,
     "testCoverage": {
-      "security": "45%",
-      "overall": "25%"
+      "security": "75%",
+      "models": "85%",
+      "upload": "80%",
+      "resilience": "90%",
+      "overall": "65%"
     }
+  },
+  "reliability": {
+    "circuitBreakers": [
+      {
+        "name": "threat-scanner",
+        "subsystem": "Verificação de segurança de modelo 3D",
+        "failureThreshold": 3,
+        "resetTimeout": 300
+      },
+      {
+        "name": "storage-system",
+        "subsystem": "Armazenamento de arquivos",
+        "failureThreshold": 5,
+        "resetTimeout": 120
+      },
+      {
+        "name": "model-deep-analysis",
+        "subsystem": "Análise estrutural profunda",
+        "failureThreshold": 5,
+        "resetTimeout": 300
+      }
+    ],
+    "autoRecoveryCapabilities": [
+      "Retry automático para operações idempotentes",
+      "Fallback para modos degradados em caso de falha",
+      "Isolamento de falhas por subsistema",
+      "Verificação de integridade pós-operação",
+      "Armazenamento temporário em caso de falha do sistema primário",
+      "Diagnóstico detalhado com captura de contexto"
+    ],
+    "diagnosticTools": [
+      "Monitoramento de testes com captura de ambiente",
+      "Pipeline CI/CD com capacidade de auto-recuperação",
+      "Logging estruturado por nível de criticidade",
+      "Métricas de circuit breaker para detecção de padrões"
+    ]
   },
   "infrastructure": {
     "docker": {
@@ -134,7 +189,7 @@
         "PHPMD",
         "Dependency Checker"
       ],
-      "reliability": "Enhanced with error handling and fallbacks"
+      "reliability": "Enhanced with error handling, self-healing and diagnostics"
     }
   }
 }
