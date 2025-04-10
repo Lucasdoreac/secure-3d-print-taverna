@@ -1,0 +1,23 @@
+parameters:
+    level: 5
+    paths:
+        - app
+    excludePaths:
+        - app/views
+    bootstrapFiles:
+        - config/constants.php
+    scanDirectories:
+        - app
+    checkMissingIterableValueType: false
+    ignoreErrors:
+        - '#Variable \$_SESSION in isset\(\) is never defined#'
+        - '#Constant BASE_PATH not found#'
+        - '#Access to an undefined property object::\$id#'
+        - '#Call to undefined function App\\session_status\(\)#'
+        - '#Call to undefined function App\\session_start\(\)#'
+        - '#Call to undefined function App\\session_regenerate_id\(\)#'
+        - '#Call to undefined function App\\header\(\)#'
+        - '#Call to undefined function App\\htmlspecialchars\(\)#'
+        
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
