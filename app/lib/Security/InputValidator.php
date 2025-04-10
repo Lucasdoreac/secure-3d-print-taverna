@@ -8,7 +8,8 @@ namespace App\Lib\Security;
  * Esta classe implementa validação rigorosa de diversos tipos de entrada
  * para prevenir injeção de dados maliciosos.
  */
-class InputValidator {
+class InputValidator
+{
     /** @var string Última mensagem de erro */
     private static $lastError = '';
     
@@ -36,7 +37,8 @@ class InputValidator {
      * @param array $options Opções de validação adicionais
      * @return mixed Valor validado ou null se inválido
      */
-    public static function validate($value, string $type, array $options = []): mixed {
+    public static function validate($value, string $type, array $options = [])
+    {
         self::$lastError = '';
         
         // Verificar valores vazios
@@ -98,7 +100,8 @@ class InputValidator {
      * @param array $options Opções (min, max)
      * @return int|null Valor filtrado ou null se inválido
      */
-    private static function validateInt($value, array $options): ?int {
+    private static function validateInt($value, array $options): ?int
+    {
         // Converter para inteiro e verificar se é válido
         $filtered = filter_var($value, FILTER_VALIDATE_INT);
         
@@ -128,7 +131,8 @@ class InputValidator {
      * @param array $options Opções (min, max)
      * @return float|null Valor filtrado ou null se inválido
      */
-    private static function validateFloat($value, array $options): ?float {
+    private static function validateFloat($value, array $options): ?float
+    {
         // Normalizar: aceitar vírgula ou ponto como separador decimal
         if (is_string($value)) {
             $value = str_replace(',', '.', $value);
@@ -163,7 +167,8 @@ class InputValidator {
      * @param array $options Opções (minLength, maxLength)
      * @return string|null Valor filtrado ou null se inválido
      */
-    private static function validateString($value, array $options): ?string {
+    private static function validateString($value, array $options): ?string
+    {
         if (!is_string($value) && !is_numeric($value)) {
             self::$lastError = 'Valor deve ser texto';
             return null;
@@ -200,7 +205,8 @@ class InputValidator {
      * @param array $options Opções adicionais
      * @return string|null Email validado ou null se inválido
      */
-    private static function validateEmail($value, array $options): ?string {
+    private static function validateEmail($value, array $options): ?string
+    {
         if (!is_string($value)) {
             self::$lastError = 'Email deve ser texto';
             return null;
@@ -233,7 +239,8 @@ class InputValidator {
      * @param array $options Opções adicionais
      * @return string|null URL validada ou null se inválida
      */
-    private static function validateUrl($value, array $options): ?string {
+    private static function validateUrl($value, array $options): ?string
+    {
         if (!is_string($value)) {
             self::$lastError = 'URL deve ser texto';
             return null;
@@ -267,7 +274,8 @@ class InputValidator {
      * @param array $options Opções (format, min, max)
      * @return string|null Data validada ou null se inválida
      */
-    private static function validateDate($value, array $options): ?string {
+    private static function validateDate($value, array $options): ?string
+    {
         if (!is_string($value) && !is_numeric($value)) {
             self::$lastError = 'Data deve ser texto';
             return null;
@@ -318,7 +326,8 @@ class InputValidator {
      * @param mixed $value Valor a validar
      * @return bool Valor booleano
      */
-    private static function validateBool($value): bool {
+    private static function validateBool($value): bool
+    {
         return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
     
@@ -329,7 +338,8 @@ class InputValidator {
      * @param array $options Opções adicionais
      * @return string|null Valor validado ou null se inválido
      */
-    private static function validateAlphanum($value, array $options): ?string {
+    private static function validateAlphanum($value, array $options): ?string
+    {
         if (!is_string($value) && !is_numeric($value)) {
             self::$lastError = 'Valor deve ser texto';
             return null;
@@ -354,7 +364,8 @@ class InputValidator {
      * @param array $options Opções adicionais
      * @return string|null Nome de usuário validado ou null se inválido
      */
-    private static function validateUsername($value, array $options): ?string {
+    private static function validateUsername($value, array $options): ?string
+    {
         if (!is_string($value)) {
             self::$lastError = 'Nome de usuário deve ser texto';
             return null;
@@ -380,7 +391,8 @@ class InputValidator {
      * @param array $options Opções adicionais
      * @return string|null Senha validada ou null se inválida
      */
-    private static function validatePassword($value, array $options): ?string {
+    private static function validatePassword($value, array $options): ?string
+    {
         if (!is_string($value)) {
             self::$lastError = 'Senha deve ser texto';
             return null;
@@ -420,10 +432,18 @@ class InputValidator {
             case 'medium':
                 // Exigir pelo menos 3 dos 4 tipos: maiúsculas, minúsculas, números e símbolos
                 $score = 0;
-                if (preg_match('/[A-Z]/', $value)) $score++;
-                if (preg_match('/[a-z]/', $value)) $score++;
-                if (preg_match('/[0-9]/', $value)) $score++;
-                if (preg_match('/[^A-Za-z0-9]/', $value)) $score++;
+                if (preg_match('/[A-Z]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[a-z]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[0-9]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[^A-Za-z0-9]/', $value)) {
+                    $score++;
+                }
                 
                 if ($score < 3) {
                     self::$lastError = 'Senha deve conter pelo menos 3 dos seguintes: letras maiúsculas, letras minúsculas, números e símbolos';
@@ -434,10 +454,18 @@ class InputValidator {
             case 'low':
                 // Exigir pelo menos 2 tipos
                 $score = 0;
-                if (preg_match('/[A-Z]/', $value)) $score++;
-                if (preg_match('/[a-z]/', $value)) $score++;
-                if (preg_match('/[0-9]/', $value)) $score++;
-                if (preg_match('/[^A-Za-z0-9]/', $value)) $score++;
+                if (preg_match('/[A-Z]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[a-z]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[0-9]/', $value)) {
+                    $score++;
+                }
+                if (preg_match('/[^A-Za-z0-9]/', $value)) {
+                    $score++;
+                }
                 
                 if ($score < 2) {
                     self::$lastError = 'Senha deve conter pelo menos 2 dos seguintes: letras maiúsculas, letras minúsculas, números e símbolos';
@@ -455,7 +483,8 @@ class InputValidator {
      * @param mixed $value Valor a validar
      * @return array|null Dados JSON decodificados ou null se inválido
      */
-    private static function validateJson($value): ?array {
+    private static function validateJson($value): ?array
+    {
         if (!is_string($value)) {
             self::$lastError = 'JSON deve ser texto';
             return null;
@@ -481,7 +510,8 @@ class InputValidator {
      * 
      * @return string Mensagem de erro
      */
-    public static function getLastError(): string {
+    public static function getLastError(): string
+    {
         return self::$lastError;
     }
 }
