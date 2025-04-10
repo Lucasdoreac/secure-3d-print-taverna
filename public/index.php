@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Ponto de entrada principal da aplicação
  * 
