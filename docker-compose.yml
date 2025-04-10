@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - .:/var/www/html
+      - ./logs:/var/log/apache2
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    environment:
+      APP_ENV: development
+      DB_HOST: mysql
+      DB_DATABASE: secure_3d_print
+      DB_USERNAME: app_user
+      DB_PASSWORD: secure_password
+    networks:
+      - secure-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: secure_3d_print
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: secure_password
+      MYSQL_ROOT_PASSWORD: root_secure_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+      - "3306:3306"
+    networks:
+      - secure-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    security_opt:
+      - no-new-privileges:true
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: root_secure_password
+      UPLOAD_LIMIT: 50M
+    depends_on:
+      - mysql
+    networks:
+      - secure-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  secure-network:
+    driver: bridge
+
+volumes:
+  db_data:
