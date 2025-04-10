@@ -3,29 +3,36 @@
 namespace App\Lib\Security;
 
 /**
- * Gerenciador central de segurança da aplicação
- * 
- * Esta classe provê interface unificada para funcionalidades
- * de segurança, incluindo CSRF, headers HTTP seguros e
- * validação de entrada.
+ * Interface unificada para funcionalidades de segurança
  */
 class SecurityManager
 {
     /**
-     * Obtém um token CSRF para formulários
+     * Aplica todos os headers de segurança HTTP
      * 
-     * @return string Token CSRF
+     * @return void
      */
-    public static function getCsrfToken(): string
+    public static function applySecurityHeaders(): void
     {
-        return CsrfProtection::getToken();
+        SecurityHeaders::applyAll();
+    }
+    
+    /**
+     * Gera um token CSRF
+     * 
+     * @param int|null $expiration Tempo de expiração opcional
+     * @return string Token gerado
+     */
+    public static function generateCsrfToken(?int $expiration = null): string
+    {
+        return CsrfProtection::generateToken($expiration);
     }
     
     /**
      * Valida um token CSRF
      * 
-     * @param string $token Token a ser validado
-     * @return bool True se válido, false caso contrário
+     * @param string|null $token Token a validar
+     * @return bool Resultado da validação
      */
     public static function validateCsrfToken(?string $token): bool
     {
@@ -33,26 +40,102 @@ class SecurityManager
     }
     
     /**
-     * Configura headers HTTP de segurança para uma resposta
+     * Gera um campo de formulário com token CSRF
      * 
-     * @return void
+     * @param int|null $expiration Tempo de expiração opcional
+     * @return string HTML do campo
      */
-    public static function applySecurityHeaders(): void
+    public static function generateCsrfField(?int $expiration = null): string
     {
-        SecurityHeaders::applyHeaders();
+        return CsrfProtection::generateTokenField($expiration);
     }
     
     /**
-     * Processa upload de arquivo com validações de segurança
+     * Valida dados de entrada com tipo específico
      * 
-     * @param array $fileData Dados do arquivo enviado ($_FILES)
-     * @param array $allowedTypes Tipos MIME permitidos
-     * @param int $maxSize Tamanho máximo em bytes
-     * @return array Informações do arquivo processado ou erro
+     * @param string $name Nome do campo
+     * @param mixed $value Valor a validar
+     * @param string $type Tipo de dados esperado
+     * @param array<string, mixed> $rules Regras adicionais
+     * @return ValidationResult Resultado da validação
      */
-    public static function processFileUpload(array $fileData, array $allowedTypes, int $maxSize): array
+    public static function validateInput(
+        string $name,
+        mixed $value,
+        string $type,
+        array $rules = []
+    ): ValidationResult {
+        $validator = new InputValidator();
+        return $validator->validate($name, $value, $type, $rules);
+    }
+    
+    /**
+     * Cria um hash seguro de senha usando Argon2id
+     * 
+     * @param string $password Senha em texto puro
+     * @return string Hash da senha
+     */
+    public static function hashPassword(string $password): string
     {
-        // Implementação a ser adicionada
-        return ['success' => false, 'error' => 'Not implemented'];
+        // Argon2id com parâmetros seguros
+        return password_hash($password, PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64MB
+            'time_cost' => 4,
+            'threads' => 3
+        ]);
+    }
+    
+    /**
+     * Verifica uma senha contra um hash com timing constante
+     * 
+     * @param string $password Senha em texto puro
+     * @param string $hash Hash armazenado
+     * @return bool Resultado da verificação
+     */
+    public static function verifyPassword(string $password, string $hash): bool
+    {
+        return password_verify($password, $hash);
+    }
+    
+    /**
+     * Realiza sanitização de saída para prevenir XSS
+     * 
+     * @param string $input String a sanitizar
+     * @return string String sanitizada
+     */
+    public static function sanitizeOutput(string $input): string
+    {
+        return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+    
+    /**
+     * Regenera o ID de sessão de forma segura
+     * 
+     * @param bool $deleteOldSession Se true, apaga dados da sessão antiga
+     * @return bool Resultado da operação
+     */
+    public static function regenerateSessionId(bool $deleteOldSession = true): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        return session_regenerate_id($deleteOldSession);
+    }
+    
+    /**
+     * Configura cookies de sessão com flags de segurança
+     * 
+     * @return bool Resultado da operação
+     */
+    public static function secureSessionCookies(): bool
+    {
+        return session_set_cookie_params([
+            'lifetime' => 0, // Até o fechamento do navegador
+            'path' => '/',
+            'secure' => true, // Apenas HTTPS
+            'httponly' => true, // Inacessível via JavaScript
+            'samesite' => 'Lax' // Proteção contra CSRF
+        ]);
     }
 }
