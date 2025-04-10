@@ -8,7 +8,8 @@ namespace App\Lib\Security;
  * Esta classe implementa proteção contra ataques Cross-Site Request Forgery
  * utilizando tokens criptograficamente seguros.
  */
-class CsrfProtection {
+class CsrfProtection
+{
     /** @var string Nome do token nos formulários */
     private const TOKEN_NAME = 'csrf_token';
     
@@ -20,7 +21,8 @@ class CsrfProtection {
      * 
      * @return string Token gerado em formato hexadecimal
      */
-    public static function generateToken(): string {
+    public static function generateToken(): string
+    {
         $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimais
         
         // Armazenar token e timestamp na sessão
@@ -37,7 +39,8 @@ class CsrfProtection {
      * 
      * @return string Token CSRF existente ou novo
      */
-    public static function getToken(): string {
+    public static function getToken(): string
+    {
         // Inicializar sessão se necessário
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -49,7 +52,7 @@ class CsrfProtection {
         }
         
         // Obter último token não expirado ou gerar novo
-        $validTokens = array_filter($_SESSION['csrf_tokens'], function($timestamp) {
+        $validTokens = array_filter($_SESSION['csrf_tokens'], function ($timestamp) {
             return time() - $timestamp < self::TOKEN_EXPIRATION;
         });
         
@@ -68,7 +71,8 @@ class CsrfProtection {
      * @param string $token Token a ser validado
      * @return bool True se o token for válido, false caso contrário
      */
-    public static function validateToken(?string $token): bool {
+    public static function validateToken(?string $token): bool
+    {
         if (empty($token) || !is_string($token) || strlen($token) !== 64) {
             return false;
         }
@@ -93,7 +97,8 @@ class CsrfProtection {
     /**
      * Limpa tokens expirados da sessão
      */
-    private static function cleanExpiredTokens(): void {
+    private static function cleanExpiredTokens(): void
+    {
         if (!isset($_SESSION['csrf_tokens'])) {
             return;
         }
@@ -112,7 +117,8 @@ class CsrfProtection {
      * 
      * @return string HTML para token CSRF
      */
-    public static function getFormField(): string {
+    public static function getFormField(): string
+    {
         $token = self::getToken();
         return '<input type="hidden" name="' . self::TOKEN_NAME . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
     }
