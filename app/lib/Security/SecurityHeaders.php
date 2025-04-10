@@ -8,7 +8,8 @@ namespace App\Lib\Security;
  * Esta classe implementa headers HTTP de segurança recomendados
  * para proteger contra diversas vulnerabilidades web.
  */
-class SecurityHeaders {
+class SecurityHeaders
+{
     /**
      * Lista de headers de segurança padrão e seus valores
      * 
@@ -42,7 +43,8 @@ class SecurityHeaders {
      * 
      * @return string
      */
-    protected static function getDefaultCSP(): string {
+    protected static function getDefaultCSP(): string
+    {
         return "default-src 'self'; " .
                "script-src 'self' 'unsafe-inline'; " .
                "style-src 'self' 'unsafe-inline'; " .
@@ -62,7 +64,8 @@ class SecurityHeaders {
      * @param array $customHeaders Headers personalizados para substituir os padrões
      * @return void
      */
-    public static function applyHeaders(array $customHeaders = []): void {
+    public static function applyHeaders(array $customHeaders = []): void
+    {
         $headers = array_merge(self::$defaultHeaders, $customHeaders);
         
         foreach ($headers as $name => $value) {
@@ -75,9 +78,10 @@ class SecurityHeaders {
     /**
      * Obtém a política CSP para ambiente de desenvolvimento (mais permissiva)
      * 
-     * @return array Header CSP para desenvolvimento
+     * @return string Header CSP para desenvolvimento
      */
-    public static function getDevelopmentCSP(): string {
+    public static function getDevelopmentCSP(): string
+    {
         return "default-src 'self'; " .
                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
                "style-src 'self' 'unsafe-inline'; " .
@@ -96,7 +100,8 @@ class SecurityHeaders {
      * 
      * @return void
      */
-    public static function applyDevelopmentHeaders(): void {
+    public static function applyDevelopmentHeaders(): void
+    {
         $devHeaders = self::$defaultHeaders;
         $devHeaders['Content-Security-Policy'] = self::getDevelopmentCSP();
         
