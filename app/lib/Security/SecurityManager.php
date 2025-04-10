@@ -9,13 +9,15 @@ namespace App\Lib\Security;
  * de segurança, incluindo CSRF, headers HTTP seguros e
  * validação de entrada.
  */
-class SecurityManager {
+class SecurityManager
+{
     /**
      * Obtém um token CSRF para formulários
      * 
      * @return string Token CSRF
      */
-    public static function getCsrfToken(): string {
+    public static function getCsrfToken(): string
+    {
         return CsrfProtection::getToken();
     }
     
@@ -25,7 +27,8 @@ class SecurityManager {
      * @param string $token Token a ser validado
      * @return bool True se válido, false caso contrário
      */
-    public static function validateCsrfToken(?string $token): bool {
+    public static function validateCsrfToken(?string $token): bool
+    {
         return CsrfProtection::validateToken($token);
     }
     
@@ -34,7 +37,8 @@ class SecurityManager {
      * 
      * @return void
      */
-    public static function applySecurityHeaders(): void {
+    public static function applySecurityHeaders(): void
+    {
         SecurityHeaders::applyHeaders();
     }
     
@@ -46,7 +50,8 @@ class SecurityManager {
      * @param int $maxSize Tamanho máximo em bytes
      * @return array Informações do arquivo processado ou erro
      */
-    public static function processFileUpload(array $fileData, array $allowedTypes, int $maxSize): array {
+    public static function processFileUpload(array $fileData, array $allowedTypes, int $maxSize): array
+    {
         // Implementação a ser adicionada
         return ['success' => false, 'error' => 'Not implemented'];
     }
