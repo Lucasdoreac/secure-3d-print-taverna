@@ -10,7 +10,8 @@ use App\Lib\Security\InputValidator;
  * Facilita a validação de entrada em controllers com métodos
  * para diferentes fontes de dados (GET, POST, FILES)
  */
-trait InputValidationTrait {
+trait InputValidationTrait
+{
     /** @var array Erros de validação */
     protected $validationErrors = [];
     
@@ -22,7 +23,8 @@ trait InputValidationTrait {
      * @param array $options Opções adicionais
      * @return mixed Valor validado ou null se inválido
      */
-    protected function getValidatedParam(string $name, string $type, array $options = []): mixed {
+    protected function getValidatedParam(string $name, string $type, array $options = [])
+    {
         if (!isset($_GET[$name]) && !empty($options['required'])) {
             $this->validationErrors[$name] = 'Campo obrigatório';
             return null;
@@ -41,7 +43,8 @@ trait InputValidationTrait {
      * @param array $options Opções adicionais
      * @return mixed Valor validado ou null se inválido
      */
-    protected function postValidatedParam(string $name, string $type, array $options = []): mixed {
+    protected function postValidatedParam(string $name, string $type, array $options = [])
+    {
         if (!isset($_POST[$name]) && !empty($options['required'])) {
             $this->validationErrors[$name] = 'Campo obrigatório';
             return null;
@@ -61,7 +64,8 @@ trait InputValidationTrait {
      * @param array $options Opções adicionais
      * @return mixed Valor validado ou null se inválido
      */
-    protected function validateValue(string $name, mixed $value, string $type, array $options = []): mixed {
+    protected function validateValue(string $name, $value, string $type, array $options = [])
+    {
         $result = InputValidator::validate($value, $type, $options);
         
         if ($result === null) {
@@ -76,7 +80,8 @@ trait InputValidationTrait {
      * 
      * @return bool True se houver erros
      */
-    protected function hasValidationErrors(): bool {
+    protected function hasValidationErrors(): bool
+    {
         return !empty($this->validationErrors);
     }
     
@@ -85,7 +90,8 @@ trait InputValidationTrait {
      * 
      * @return array Erros de validação
      */
-    protected function getValidationErrors(): array {
+    protected function getValidationErrors(): array
+    {
         return $this->validationErrors;
     }
 }
