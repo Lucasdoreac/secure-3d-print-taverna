@@ -3,111 +3,136 @@
 namespace App\Lib\Security;
 
 /**
- * Gerenciador de headers HTTP de segurança
- * 
- * Esta classe implementa headers HTTP de segurança recomendados
- * para proteger contra diversas vulnerabilidades web.
+ * Implementação de headers HTTP de segurança
  */
 class SecurityHeaders
 {
     /**
-     * Lista de headers de segurança padrão e seus valores
-     * 
-     * @var array
+     * Content Security Policy padrão
      */
-    protected static $defaultHeaders = [
-        // Previne MIME-sniffing
-        'X-Content-Type-Options' => 'nosniff',
-        
-        // Controla onde o site pode ser incorporado (previne clickjacking)
-        'X-Frame-Options' => 'DENY',
-        
-        // Previne XSS refletido em navegadores modernos
-        'X-XSS-Protection' => '1; mode=block',
-        
-        // Enforce HTTPS
-        'Strict-Transport-Security' => 'max-age=31536000; includeSubDomains',
-        
-        // Evita exposição de informações sensíveis
-        'Referrer-Policy' => 'strict-origin-when-cross-origin',
-        
-        // Controla quais recursos o navegador pode carregar
-        'Content-Security-Policy' => self::getDefaultCSP(),
-        
-        // Controla quais recursos são permitidos na página
-        'Permissions-Policy' => 'camera=(), microphone=(), geolocation=()',
+    private const DEFAULT_CSP = [
+        "default-src 'self'",
+        "img-src 'self' data:",
+        "style-src 'self' 'unsafe-inline'",
+        "script-src 'self'",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "object-src 'none'"
     ];
     
     /**
-     * Retorna a política CSP padrão
-     * 
-     * @return string
+     * Headers de segurança padrão
      */
-    protected static function getDefaultCSP(): string
-    {
-        return "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline'; " .
-               "style-src 'self' 'unsafe-inline'; " .
-               "img-src 'self' data:; " .
-               "font-src 'self'; " .
-               "connect-src 'self'; " .
-               "media-src 'self'; " .
-               "object-src 'none'; " .
-               "frame-src 'none'; " .
-               "base-uri 'self'; " .
-               "form-action 'self'";
-    }
+    private const SECURITY_HEADERS = [
+        'X-Content-Type-Options' => 'nosniff',
+        'X-Frame-Options' => 'DENY',
+        'X-XSS-Protection' => '1; mode=block',
+        'Referrer-Policy' => 'strict-origin-when-cross-origin',
+        'Permissions-Policy' => 'geolocation=(), microphone=(), camera=()',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache'
+    ];
     
     /**
-     * Aplica os headers de segurança à resposta HTTP
+     * Aplica todos os headers de segurança HTTP
      * 
-     * @param array $customHeaders Headers personalizados para substituir os padrões
      * @return void
      */
-    public static function applyHeaders(array $customHeaders = []): void
+    public static function applyAll(): void
     {
-        $headers = array_merge(self::$defaultHeaders, $customHeaders);
+        self::applyContentSecurityPolicy();
+        self::applySecurityHeaders();
         
-        foreach ($headers as $name => $value) {
-            if (!headers_sent()) {
-                header("$name: $value");
-            }
+        if (self::isHttpsEnabled()) {
+            self::applyStrictTransportSecurity();
         }
     }
     
     /**
-     * Obtém a política CSP para ambiente de desenvolvimento (mais permissiva)
+     * Aplica Content Security Policy
      * 
-     * @return string Header CSP para desenvolvimento
+     * @param array<string>|null $policies Políticas CSP personalizadas
+     * @return void
      */
-    public static function getDevelopmentCSP(): string
+    public static function applyContentSecurityPolicy(?array $policies = null): void
     {
-        return "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-               "style-src 'self' 'unsafe-inline'; " .
-               "img-src 'self' data:; " .
-               "font-src 'self'; " .
-               "connect-src 'self'; " .
-               "media-src 'self'; " .
-               "object-src 'none'; " .
-               "frame-src 'self'; " .
-               "base-uri 'self'; " .
-               "form-action 'self'";
+        $cspHeader = implode('; ', $policies ?? self::DEFAULT_CSP);
+        header("Content-Security-Policy: {$cspHeader}");
     }
     
     /**
-     * Configura headers para ambiente de desenvolvimento
+     * Aplica headers de segurança padrão
      * 
+     * @param array<string, string>|null $headers Headers personalizados
      * @return void
      */
-    public static function applyDevelopmentHeaders(): void
+    public static function applySecurityHeaders(?array $headers = null): void
     {
-        $devHeaders = self::$defaultHeaders;
-        $devHeaders['Content-Security-Policy'] = self::getDevelopmentCSP();
+        $securityHeaders = $headers ?? self::SECURITY_HEADERS;
         
-        // Remover HSTS em ambiente de desenvolvimento
-        unset($devHeaders['Strict-Transport-Security']);
+        foreach ($securityHeaders as $header => $value) {
+            header("{$header}: {$value}");
+        }
+    }
+    
+    /**
+     * Aplica Strict-Transport-Security
+     * 
+     * @param int $maxAge Duração em segundos (padrão: 31536000 = 1 ano)
+     * @param bool $includeSubDomains Incluir subdomínios na política
+     * @param bool $preload Incluir flag de preload
+     * @return void
+     */
+    public static function applyStrictTransportSecurity(
+        int $maxAge = 31536000,
+        bool $includeSubDomains = true,
+        bool $preload = false
+    ): void {
+        $hsts = "max-age={$maxAge}";
         
-        self::applyHeaders($devHeaders);
+        if ($includeSubDomains) {
+            $hsts .= '; includeSubDomains';
+        }
+        
+        if ($preload) {
+            $hsts .= '; preload';
+        }
+        
+        header("Strict-Transport-Security: {$hsts}");
+    }
+    
+    /**
+     * Verifica se HTTPS está habilitado
+     * 
+     * @return bool True se HTTPS estiver ativo
+     */
+    private static function isHttpsEnabled(): bool
+    {
+        return (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+            (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+        );
+    }
+    
+    /**
+     * Aplica header de Feature-Policy
+     * 
+     * @deprecated Use Permissions-Policy instead (já incluído nos headers padrão)
+     * @param array<string, string> $policies Políticas de Feature-Policy
+     * @return void
+     */
+    public static function applyFeaturePolicy(array $policies): void
+    {
+        $policyHeader = [];
+        
+        foreach ($policies as $feature => $allowList) {
+            $policyHeader[] = "{$feature} {$allowList}";
+        }
+        
+        header("Feature-Policy: " . implode('; ', $policyHeader));
     }
 }
