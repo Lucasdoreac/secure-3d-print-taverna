@@ -3,123 +3,123 @@
 namespace App\Lib\Security;
 
 /**
- * Implementação robusta de proteção CSRF
- * 
- * Esta classe implementa proteção contra ataques Cross-Site Request Forgery
- * utilizando tokens criptograficamente seguros.
+ * Implementação de proteção CSRF com tokens de uso único e expiração
  */
 class CsrfProtection
 {
-    /** @var string Nome do token nos formulários */
-    private const TOKEN_NAME = 'csrf_token';
-    
-    /** @var int Tempo de expiração dos tokens em segundos (1 hora) */
-    private const TOKEN_EXPIRATION = 3600;
+    /**
+     * Tempo de expiração padrão dos tokens (3600 segundos = 1 hora)
+     */
+    private const DEFAULT_EXPIRATION = 3600;
     
     /**
-     * Gera um token CSRF criptograficamente seguro
+     * Gera um novo token CSRF e o armazena na sessão
      * 
-     * @return string Token gerado em formato hexadecimal
+     * @param int|null $expiration Tempo em segundos até a expiração (null para usar padrão)
+     * @return string Token gerado
      */
-    public static function generateToken(): string
+    public static function generateToken(?int $expiration = null): string
     {
-        $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimais
-        
-        // Armazenar token e timestamp na sessão
-        $_SESSION['csrf_tokens'][$token] = time();
-        
-        // Limpar tokens expirados
-        self::cleanExpiredTokens();
-        
-        return $token;
-    }
-    
-    /**
-     * Obtém um token CSRF para uso em formulários
-     * 
-     * @return string Token CSRF existente ou novo
-     */
-    public static function getToken(): string
-    {
-        // Inicializar sessão se necessário
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
-        // Inicializar array de tokens se não existir
+        // Inicializar array de tokens na sessão se não existir
         if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
             $_SESSION['csrf_tokens'] = [];
         }
         
-        // Obter último token não expirado ou gerar novo
-        $validTokens = array_filter($_SESSION['csrf_tokens'], function ($timestamp) {
-            return time() - $timestamp < self::TOKEN_EXPIRATION;
-        });
+        // Limpar tokens expirados
+        self::cleanExpiredTokens();
         
-        if (empty($validTokens)) {
-            return self::generateToken();
-        }
+        // Gerar novo token criptograficamente seguro
+        $token = bin2hex(random_bytes(32)); // 64 caracteres hex
         
-        // Retornar token mais recente
-        $token = array_key_first($validTokens);
+        // Armazenar token com timestamp de criação
+        $expirationTime = $expiration ?? self::DEFAULT_EXPIRATION;
+        $_SESSION['csrf_tokens'][$token] = time() + $expirationTime;
+        
         return $token;
     }
     
     /**
-     * Valida um token CSRF recebido
+     * Valida um token CSRF e o remove após validação (one-time use)
      * 
-     * @param string $token Token a ser validado
-     * @return bool True se o token for válido, false caso contrário
+     * @param string|null $token Token a ser validado
+     * @return bool True se o token é válido
      */
     public static function validateToken(?string $token): bool
     {
-        if (empty($token) || !is_string($token) || strlen($token) !== 64) {
+        if (empty($token) || session_status() === PHP_SESSION_NONE) {
             return false;
         }
         
-        // Verificar se o token existe na sessão
+        if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
+            return false;
+        }
+        
+        // Verificar se o token existe e não expirou
         if (!isset($_SESSION['csrf_tokens'][$token])) {
             return false;
         }
         
-        // Verificar expiração
-        $timestamp = $_SESSION['csrf_tokens'][$token];
-        if (time() - $timestamp > self::TOKEN_EXPIRATION) {
+        $expirationTime = $_SESSION['csrf_tokens'][$token];
+        if (time() > $expirationTime) {
+            // Token expirado, remover e retornar falso
             unset($_SESSION['csrf_tokens'][$token]);
             return false;
         }
         
-        // Remover token após uso (one-time use)
+        // Token válido, remover (one-time use) e retornar verdadeiro
         unset($_SESSION['csrf_tokens'][$token]);
         return true;
     }
     
     /**
-     * Limpa tokens expirados da sessão
+     * Gera um campo de formulário HTML com token CSRF
+     * 
+     * @param int|null $expiration Tempo de expiração opcional
+     * @return string HTML do campo hidden com token
+     */
+    public static function generateTokenField(?int $expiration = null): string
+    {
+        $token = self::generateToken($expiration);
+        return sprintf(
+            '<input type="hidden" name="csrf_token" value="%s">',
+            htmlspecialchars($token, ENT_QUOTES, 'UTF-8')
+        );
+    }
+    
+    /**
+     * Remove tokens expirados da sessão
+     * 
+     * @return void
      */
     private static function cleanExpiredTokens(): void
     {
-        if (!isset($_SESSION['csrf_tokens'])) {
+        if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
             return;
         }
         
         $currentTime = time();
-        
-        foreach ($_SESSION['csrf_tokens'] as $token => $timestamp) {
-            if ($currentTime - $timestamp > self::TOKEN_EXPIRATION) {
+        foreach ($_SESSION['csrf_tokens'] as $token => $expirationTime) {
+            if ($currentTime > $expirationTime) {
                 unset($_SESSION['csrf_tokens'][$token]);
             }
         }
     }
     
     /**
-     * Retorna campo HTML para inclusão em formulários
+     * Limpa todos os tokens CSRF armazenados
      * 
-     * @return string HTML para token CSRF
+     * @return void
      */
-    public static function getFormField(): string
+    public static function clearAllTokens(): void
     {
-        $token = self::getToken();
-        return '<input type="hidden" name="' . self::TOKEN_NAME . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $_SESSION['csrf_tokens'] = [];
     }
 }
