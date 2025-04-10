@@ -20,7 +20,7 @@ Este projeto implementa os seguintes guardrails de segurança:
 ## Instalação
 
 ```bash
-git clone https://github.com/Lucasdoreac/secure-3d-print-taverna.git
+git clone https://github.com/seu-usuario/secure-3d-print-taverna.git
 cd secure-3d-print-taverna
 ./scripts/setup.sh
 ```

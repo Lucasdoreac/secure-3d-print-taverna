@@ -3,98 +3,106 @@
 namespace App\Lib\Security;
 
 /**
- * Implementação de headers HTTP de segurança
+ * Gerenciador de headers HTTP de segurança
  * 
- * Esta classe gerencia a aplicação de headers HTTP de segurança
- * para mitigar vários tipos de ataques.
+ * Esta classe implementa headers HTTP de segurança recomendados
+ * para proteger contra diversas vulnerabilidades web.
  */
 class SecurityHeaders {
-    /** @var array Headers de segurança padrão */
-    private static array $defaultHeaders = [
-        // Previne XSS forçando o navegador a ativar proteções embutidas
-        'X-XSS-Protection' => '1; mode=block',
-        
-        // Impede o navegador de interpretar arquivos como um tipo diferente
+    /**
+     * Lista de headers de segurança padrão e seus valores
+     * 
+     * @var array
+     */
+    protected static $defaultHeaders = [
+        // Previne MIME-sniffing
         'X-Content-Type-Options' => 'nosniff',
         
-        // Protege contra clickjacking
-        'X-Frame-Options' => 'SAMEORIGIN',
+        // Controla onde o site pode ser incorporado (previne clickjacking)
+        'X-Frame-Options' => 'DENY',
         
-        // Referrer Policy - controla quanta informação de referência é incluída com requisições
-        'Referrer-Policy' => 'strict-origin-when-cross-origin',
+        // Previne XSS refletido em navegadores modernos
+        'X-XSS-Protection' => '1; mode=block',
         
-        // Desabilita recursos de rastreamento de terceiros
-        'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-        
-        // Força conexões HTTPS
+        // Enforce HTTPS
         'Strict-Transport-Security' => 'max-age=31536000; includeSubDomains',
         
-        // Define políticas de segurança de conteúdo para prevenir XSS e injeções
-        'Content-Security-Policy' => "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none';"
+        // Evita exposição de informações sensíveis
+        'Referrer-Policy' => 'strict-origin-when-cross-origin',
+        
+        // Controla quais recursos o navegador pode carregar
+        'Content-Security-Policy' => self::getDefaultCSP(),
+        
+        // Controla quais recursos são permitidos na página
+        'Permissions-Policy' => 'camera=(), microphone=(), geolocation=()',
     ];
     
     /**
-     * Aplica os headers HTTP de segurança
+     * Retorna a política CSP padrão
      * 
-     * @param array $customHeaders Headers personalizados
+     * @return string
+     */
+    protected static function getDefaultCSP(): string {
+        return "default-src 'self'; " .
+               "script-src 'self' 'unsafe-inline'; " .
+               "style-src 'self' 'unsafe-inline'; " .
+               "img-src 'self' data:; " .
+               "font-src 'self'; " .
+               "connect-src 'self'; " .
+               "media-src 'self'; " .
+               "object-src 'none'; " .
+               "frame-src 'none'; " .
+               "base-uri 'self'; " .
+               "form-action 'self'";
+    }
+    
+    /**
+     * Aplica os headers de segurança à resposta HTTP
+     * 
+     * @param array $customHeaders Headers personalizados para substituir os padrões
      * @return void
      */
     public static function applyHeaders(array $customHeaders = []): void {
-        // Combina os headers padrão com os personalizados
         $headers = array_merge(self::$defaultHeaders, $customHeaders);
         
-        // Define cada header
         foreach ($headers as $name => $value) {
-            header("$name: $value");
-        }
-        
-        // Remove headers que podem expor informações do servidor
-        header_remove('X-Powered-By');
-        header_remove('Server');
-    }
-    
-    /**
-     * Configura uma política CSP personalizada
-     * 
-     * @param array $policies Array associativo com diretivas CSP personalizadas
-     * @return string Política CSP formatada
-     */
-    public static function buildCustomCsp(array $policies): string {
-        $cspDirectives = [];
-        
-        foreach ($policies as $directive => $sources) {
-            // Certifica-se de que as fontes estão em um array
-            if (!is_array($sources)) {
-                $sources = [$sources];
+            if (!headers_sent()) {
+                header("$name: $value");
             }
-            
-            // Formata a diretiva CSP
-            $cspDirectives[] = $directive . ' ' . implode(' ', $sources);
         }
+    }
+    
+    /**
+     * Obtém a política CSP para ambiente de desenvolvimento (mais permissiva)
+     * 
+     * @return array Header CSP para desenvolvimento
+     */
+    public static function getDevelopmentCSP(): string {
+        return "default-src 'self'; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+               "style-src 'self' 'unsafe-inline'; " .
+               "img-src 'self' data:; " .
+               "font-src 'self'; " .
+               "connect-src 'self'; " .
+               "media-src 'self'; " .
+               "object-src 'none'; " .
+               "frame-src 'self'; " .
+               "base-uri 'self'; " .
+               "form-action 'self'";
+    }
+    
+    /**
+     * Configura headers para ambiente de desenvolvimento
+     * 
+     * @return void
+     */
+    public static function applyDevelopmentHeaders(): void {
+        $devHeaders = self::$defaultHeaders;
+        $devHeaders['Content-Security-Policy'] = self::getDevelopmentCSP();
         
-        return implode('; ', $cspDirectives) . ';';
-    }
-    
-    /**
-     * Obtém um header de CSP mais permissivo para ambientes de desenvolvimento
-     * 
-     * @return string Política CSP para desenvolvimento
-     */
-    public static function getDevCsp(): string {
-        return "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self';";
-    }
-    
-    /**
-     * Obtém headers rigorosos para dados sensíveis
-     * 
-     * @return array Headers adicionais para áreas de alta segurança
-     */
-    public static function getStrictHeaders(): array {
-        return [
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
-            'X-XSS-Protection' => '1; mode=block',
-            'Content-Security-Policy' => "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none';",
-        ];
+        // Remover HSTS em ambiente de desenvolvimento
+        unset($devHeaders['Strict-Transport-Security']);
+        
+        self::applyHeaders($devHeaders);
     }
 }

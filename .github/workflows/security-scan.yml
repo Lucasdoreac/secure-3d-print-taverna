@@ -1,0 +1,43 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly scan
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, pdo_mysql
+          tools: composer:v2, phpcs, phpstan
+      
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-progress
+      
+      - name: Run PHP Code Sniffer
+        run: phpcs --standard=PSR12 app/
+      
+      - name: Run PHPStan
+        run: phpstan analyse app/ --level=5
+      
+      - name: Run PHPMD
+        uses: php-actions/phpmd@v1
+        with:
+          path: app/
+          reportFormat: text
+          ruleset: unusedcode,naming,design
+      
+      - name: Run PHP Security Checker
+        uses: symfonycorp/security-checker-action@v4
