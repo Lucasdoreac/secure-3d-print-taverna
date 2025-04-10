@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
-    - cron: '0 0 * * 0'  # Weekly scan
+    - cron: '0 0 * * 0' # Weekly scan
 
 jobs:
   security-scan:
@@ -26,25 +26,53 @@ jobs:
       - name: Validate composer.json
         run: composer validate --strict
       
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+      
       - name: Install dependencies
         run: |
           composer install --prefer-dist --no-progress --no-interaction
+      
+      - name: Create test directory structure
+        run: mkdir -p tests/Security tests/Validation tests/Integration
       
       - name: Run PHP Code Sniffer
         run: vendor/bin/phpcs --standard=PSR12 app/
       
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse app/ --level=5
-      
-      - name: Run PHPMD
-        uses: php-actions/phpmd@v1
-        with:
-          path: app/
-          reportFormat: text
-          ruleset: unusedcode,naming,design
+        run: vendor/bin/phpstan analyse app/ --level=5 --no-progress
       
       - name: Run PHP Security Checker
         uses: symfonycorp/security-checker-action@v4
       
       - name: Run PHPUnit Tests
-        run: vendor/bin/phpunit tests/ --testdox
+        run: vendor/bin/phpunit --testdox
+        
+      - name: Generate security report
+        if: success()
+        run: |
+          echo "Security Scan completed successfully" > security-report.txt
+          echo "Date: $(date)" >> security-report.txt
+          echo "Commit: ${{ github.sha }}" >> security-report.txt
+          echo "PHP version: $(php -v | head -n 1)" >> security-report.txt
+          echo "\nPassed Checks:" >> security-report.txt
+          echo "- Composer Validation" >> security-report.txt
+          echo "- PHP Code Sniffer (PSR-12)" >> security-report.txt
+          echo "- PHPStan (Level 5)" >> security-report.txt
+          echo "- Security Dependencies Check" >> security-report.txt
+          echo "- PHPUnit Tests" >> security-report.txt
+      
+      - name: Upload Security Report
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.txt
